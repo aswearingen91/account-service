@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"/internal/services"
+	"github.com/aswearingen91/account-service/internal/services"
 )
 
 // UserHandler handles HTTP endpoints for user-related actions.

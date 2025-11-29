@@ -7,8 +7,8 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"/internal/config"
-	"/internal/models"
+	"github.com/aswearingen91/account-service/internal/config"
+	"github.com/aswearingen91/account-service/internal/models"
 )
 
 func Connect(cfg *config.Config) *gorm.DB {
@@ -27,10 +27,10 @@ func Connect(cfg *config.Config) *gorm.DB {
 	if err != nil {
 		log.Fatal("failed to connect to database:", err)
 	}
-
-	// Auto-migrate
-	if err := db.AutoMigrate(&models.User{}, &models.PublicKey{}); err != nil {
-		log.Fatal("failed to migrate database:", err)
+	// Automatically create tables if they do not exist
+	err = db.AutoMigrate(&models.User{})
+	if err != nil {
+		panic(err)
 	}
 
 	return db

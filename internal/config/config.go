@@ -27,7 +27,7 @@ func LoadConfig(jsonPath string) *Config {
 		PostgresPort:     "5432",
 		PostgresUser:     "postgres",
 		PostgresPassword: "postgres",
-		PostgresDB:       "sigver",
+		PostgresDB:       "account",
 		PostgresSSLMode:  "disable",
 
 		Port: "8080", // default server port

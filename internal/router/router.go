@@ -3,23 +3,14 @@ package router
 import (
 	"net/http"
 
-	"/internal/handlers"
+	"github.com/aswearingen91/account-service/internal/handlers"
 )
 
 func NewRouter(
-	publicKeyHandler *handlers.PublicKeyHandler,
 	userHandler *handlers.UserHandler,
 ) *http.ServeMux {
 
 	mux := http.NewServeMux()
-
-	// ------------------------
-	// Public Key routes
-	// ------------------------
-	mux.HandleFunc("POST /keys", publicKeyHandler.CreatePublicKey)
-	mux.HandleFunc("GET /keys", publicKeyHandler.GetPublicKeys)
-	mux.HandleFunc("GET /keys/user/{id}", publicKeyHandler.GetPublicKeysByUser)
-	mux.HandleFunc("DELETE /keys/{id}", publicKeyHandler.DeletePublicKey)
 
 	// ------------------------
 	// User routes (FIXED)
@@ -38,11 +29,6 @@ func NewRouter(
 
 		http.Error(w, "missing id or username parameter", http.StatusBadRequest)
 	})
-
-	// ------------------------
-	// Verification routes
-	// ------------------------
-	mux.HandleFunc("POST /verify", handlers.VerifySignature)
 
 	return mux
 }

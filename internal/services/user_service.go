@@ -3,8 +3,8 @@ package services
 import (
 	"errors"
 
-	"/internal/models"
-	"/internal/repositories"
+	"github.com/aswearingen91/account-service/internal/models"
+	"github.com/aswearingen91/account-service/internal/repositories"
 	"gorm.io/gorm"
 )
 

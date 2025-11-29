@@ -36,25 +36,22 @@ func main() {
 	//
 	// ---- Initialize repositories ----
 	//
-	publicKeyRepo := repositories.NewPublicKeyRepository(db)
 	userRepo := repositories.NewUserRepository(db)
 
 	//
 	// ---- Initialize services ----
 	//
-	publicKeyService := services.NewPublicKeyService(publicKeyRepo)
 	userService := services.NewUserService(userRepo)
 
 	//
 	// ---- Initialize handlers ----
 	//
-	publicKeyHandler := handlers.NewPublicKeyHandler(publicKeyService)
 	userHandler := handlers.NewUserHandler(userService)
 
 	//
 	// ---- Set up router ----
 	//
-	mux := router.NewRouter(publicKeyHandler, userHandler)
+	mux := router.NewRouter(userHandler)
 
 	//
 	// ---- Start server ----
