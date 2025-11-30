@@ -5,11 +5,12 @@ import (
 
 	"github.com/aswearingen91/account-service/internal/models"
 	"github.com/aswearingen91/account-service/internal/repositories"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
 type UserService interface {
-	CreateUser(username string) (*models.User, error)
+	CreateUser(username string, password string) (*models.User, error)
 	GetUser(id uint) (*models.User, error)
 	GetUserByUsername(username string) (*models.User, error)
 }
@@ -22,7 +23,7 @@ func NewUserService(users repositories.UserRepository) UserService {
 	return &userService{users}
 }
 
-func (s *userService) CreateUser(username string) (*models.User, error) {
+func (s *userService) CreateUser(username string, password string) (*models.User, error) {
 	_, err := s.users.GetByUsername(username)
 	if err == nil {
 		// found an existing user
@@ -32,8 +33,14 @@ func (s *userService) CreateUser(username string) (*models.User, error) {
 		return nil, err
 	}
 
+	hashed, err := HashPassword(password)
+	if err != nil {
+		return nil, err
+	}
+
 	user := &models.User{
 		Username: username,
+		Password: hashed,
 	}
 
 	if err := s.users.Create(user); err != nil {
@@ -49,4 +56,11 @@ func (s *userService) GetUser(id uint) (*models.User, error) {
 
 func (s *userService) GetUserByUsername(username string) (*models.User, error) {
 	return s.users.GetByUsername(username)
+}
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	return string(bytes), err
+}
+func CheckPassword(hashedPassword, plainPassword string) error {
+	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(plainPassword))
 }
