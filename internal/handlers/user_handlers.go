@@ -109,29 +109,40 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	// Parse request body
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		http.Error(w, `{"message":"invalid request body"}`, http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"error": "Invalid request body",
+		})
 		return
 	}
 
 	// Validate user
 	if err := h.svc.Login(body.Username, body.Password); err != nil {
-		http.Error(w, `{"message":"login failed"}`, http.StatusUnauthorized)
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"error": "Login failed. Check your credentials.",
+		})
 		return
 	}
+
+	// Generate JWT token
 	tokenString, err := h.generateJWT(body.Username)
 	if err != nil {
-		http.Error(w, `{"message":"could not generate token"}`, http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"error": "Could not generate token",
+		})
 		return
 	}
 
 	// Return final JSON response
-	resp := map[string]string{
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{
 		"token":   tokenString,
-		"message": "Logged in",
-	}
-
-	_ = json.NewEncoder(w).Encode(resp)
+		"message": "Logged in successfully",
+	})
 }
+
 func (h *UserHandler) generateJWT(username string) (string, error) {
 	// Create JWT token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
