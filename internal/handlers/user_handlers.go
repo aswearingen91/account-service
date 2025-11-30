@@ -12,12 +12,14 @@ import (
 
 // UserHandler handles HTTP endpoints for user-related actions.
 type UserHandler struct {
-	svc services.UserService
+	svc       services.UserService
+	jwtSecret string
 }
 
 // NewUserHandler constructs a new UserHandler.
-func NewUserHandler(svc services.UserService) *UserHandler {
-	return &UserHandler{svc: svc}
+func NewUserHandler(svc services.UserService, jwtSecret string) *UserHandler {
+	return &UserHandler{svc: svc,
+		jwtSecret: jwtSecret}
 }
 
 // ------------------------------------------------------------
@@ -98,8 +100,6 @@ func (h *UserHandler) GetUserByUsername(w http.ResponseWriter, r *http.Request) 
 // Returns: { "token": "...", "message": "Logged in" }
 // ------------------------------------------------------------
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var jwtSecret = []byte("super-secret-key-change-me")
-
 	var body struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
@@ -118,14 +118,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"message":"login failed"}`, http.StatusUnauthorized)
 		return
 	}
-
-	// Create JWT token
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"username": body.Username,
-		"exp":      time.Now().Add(24 * time.Hour).Unix(),
-	})
-
-	tokenString, err := token.SignedString(jwtSecret)
+	tokenString, err := h.generateJWT(body.Username)
 	if err != nil {
 		http.Error(w, `{"message":"could not generate token"}`, http.StatusInternalServerError)
 		return
@@ -138,4 +131,13 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = json.NewEncoder(w).Encode(resp)
+}
+func (h *UserHandler) generateJWT(username string) (string, error) {
+	// Create JWT token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"username": username,
+		"exp":      time.Now().Add(24 * time.Hour).Unix(),
+	})
+
+	return token.SignedString(h.jwtSecret)
 }

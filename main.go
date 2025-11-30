@@ -46,7 +46,7 @@ func main() {
 	//
 	// ---- Initialize handlers ----
 	//
-	userHandler := handlers.NewUserHandler(userService)
+	userHandler := handlers.NewUserHandler(userService, cfg.JWTSecret)
 
 	//
 	// ---- Set up router ----
