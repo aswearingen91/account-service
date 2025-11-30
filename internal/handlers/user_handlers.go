@@ -85,6 +85,33 @@ func (h *UserHandler) GetUserByUsername(w http.ResponseWriter, r *http.Request) 
 	_ = json.NewEncoder(w).Encode(user)
 }
 
+func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	var response struct {
+		Message string `json:"message"`
+	}
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	err := h.svc.Login(body.Username, body.Password)
+	if err != nil {
+		response.Message = "Login failed"
+		_ = json.NewEncoder(w).Encode(response)
+		http.Error(w, "user not found", http.StatusNotFound)
+		return
+	}
+
+	response.Message = "Logged in"
+	_ = json.NewEncoder(w).Encode(response)
+}
+
 // Example model usage (not required, but shows shape):
 // type UserResponse struct {
 //     ID       uint   `json:"id"`

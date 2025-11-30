@@ -13,6 +13,7 @@ type UserService interface {
 	CreateUser(username string, password string) (*models.User, error)
 	GetUser(id uint) (*models.User, error)
 	GetUserByUsername(username string) (*models.User, error)
+	Login(username string, password string) error
 }
 
 type userService struct {
@@ -57,6 +58,15 @@ func (s *userService) GetUser(id uint) (*models.User, error) {
 func (s *userService) GetUserByUsername(username string) (*models.User, error) {
 	return s.users.GetByUsername(username)
 }
+func (s *userService) Login(username string, password string) error {
+	user, err := s.users.GetByUsername(username)
+	if err != nil {
+		return err
+	}
+	err = CheckPassword(user.Password, password)
+	return err
+}
+
 func HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	return string(bytes), err
