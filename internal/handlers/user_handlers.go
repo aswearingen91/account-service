@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/aswearingen91/account-service/internal/services"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // UserHandler handles HTTP endpoints for user-related actions.
@@ -18,8 +20,10 @@ func NewUserHandler(svc services.UserService) *UserHandler {
 	return &UserHandler{svc: svc}
 }
 
+// ------------------------------------------------------------
 // CreateUser handles POST /user
-// Expects JSON body: {"username":"..."}
+// Expects JSON body: {"username":"...", "password":"..."}
+// ------------------------------------------------------------
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Username string `json:"username"`
@@ -42,7 +46,9 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(user)
 }
 
+// ------------------------------------------------------------
 // GetUser handles GET /user?id=123
+// ------------------------------------------------------------
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
@@ -55,8 +61,8 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid id parameter", http.StatusBadRequest)
 		return
 	}
-	id := uint(id64)
 
+	id := uint(id64)
 	user, err := h.svc.GetUser(id)
 	if err != nil {
 		http.Error(w, "user not found", http.StatusNotFound)
@@ -67,7 +73,9 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(user)
 }
 
+// ------------------------------------------------------------
 // GetUserByUsername handles GET /user?username=alice
+// ------------------------------------------------------------
 func (h *UserHandler) GetUserByUsername(w http.ResponseWriter, r *http.Request) {
 	username := r.URL.Query().Get("username")
 	if username == "" {
@@ -85,35 +93,49 @@ func (h *UserHandler) GetUserByUsername(w http.ResponseWriter, r *http.Request) 
 	_ = json.NewEncoder(w).Encode(user)
 }
 
+// ------------------------------------------------------------
+// Login handles POST /user/login
+// Returns: { "token": "...", "message": "Logged in" }
+// ------------------------------------------------------------
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
+	var jwtSecret = []byte("super-secret-key-change-me")
+
 	var body struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
 	}
-	var response struct {
-		Message string `json:"message"`
-	}
+
 	w.Header().Set("Content-Type", "application/json")
 
+	// Parse request body
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+		http.Error(w, `{"message":"invalid request body"}`, http.StatusBadRequest)
 		return
 	}
 
-	err := h.svc.Login(body.Username, body.Password)
+	// Validate user
+	if err := h.svc.Login(body.Username, body.Password); err != nil {
+		http.Error(w, `{"message":"login failed"}`, http.StatusUnauthorized)
+		return
+	}
+
+	// Create JWT token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"username": body.Username,
+		"exp":      time.Now().Add(24 * time.Hour).Unix(),
+	})
+
+	tokenString, err := token.SignedString(jwtSecret)
 	if err != nil {
-		response.Message = "Login failed"
-		_ = json.NewEncoder(w).Encode(response)
-		http.Error(w, "user not found", http.StatusNotFound)
+		http.Error(w, `{"message":"could not generate token"}`, http.StatusInternalServerError)
 		return
 	}
 
-	response.Message = "Logged in"
-	_ = json.NewEncoder(w).Encode(response)
-}
+	// Return final JSON response
+	resp := map[string]string{
+		"token":   tokenString,
+		"message": "Logged in",
+	}
 
-// Example model usage (not required, but shows shape):
-// type UserResponse struct {
-//     ID       uint   `json:"id"`
-//     Username string `json:"username"`
-// }
+	_ = json.NewEncoder(w).Encode(resp)
+}
