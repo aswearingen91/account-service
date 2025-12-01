@@ -13,6 +13,7 @@ type Config struct {
 	PostgresPassword string `json:"postgres_password"`
 	PostgresDB       string `json:"postgres_db"`
 	PostgresSSLMode  string `json:"postgres_sslmode"`
+	JWTSecret        string `json:"jwt_secret"`
 
 	Port string `json:"port"` // NEW — HTTP server port
 }
@@ -54,6 +55,7 @@ func LoadConfig(jsonPath string) *Config {
 	overrideEnv(&cfg.PostgresSSLMode, "POSTGRES_SSLMODE")
 
 	overrideEnv(&cfg.Port, "PORT") // NEW — override HTTP port
+	overrideEnv(&cfg.JWTSecret, "JWT_SECRET")
 
 	return cfg
 }
