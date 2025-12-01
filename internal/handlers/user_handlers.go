@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/aswearingen91/account-service/internal/models"
 	"github.com/aswearingen91/account-service/internal/services"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -145,8 +146,16 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-
-	tokenString, err := h.generateJWT(body.Username)
+	user, err := h.svc.GetUserByUsername(body.Username)
+	if err != nil {
+		log.Printf("Login: user %s not found\n", body.Username)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"error": "Could not user id to generate token",
+		})
+		return
+	}
+	tokenString, err := h.generateJWT(user)
 	if err != nil {
 		log.Printf("Login: could not generate token for user %s: %v\n", body.Username, err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -165,9 +174,10 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 // generateJWT creates a JWT token for a given username
-func (h *UserHandler) generateJWT(username string) (string, error) {
+func (h *UserHandler) generateJWT(user *models.User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"username": username,
+		"username": user.Username,
+		"user_id":  user.ID,
 		"exp":      time.Now().Add(24 * time.Hour).Unix(),
 	})
 
